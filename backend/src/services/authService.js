@@ -1,5 +1,6 @@
 import { prisma } from '../config/db.js';
 import { generateToken } from '../utils/jwt.js';
+import { NotFoundError, ConflictError } from '../utils/errors.js';
 
 export async function registerUser(data) {
   const { username, publicKey, encryptedPrivateKey, salt } = data;
@@ -10,7 +11,7 @@ export async function registerUser(data) {
   });
   
   if (existingUser) {
-    throw new Error('Username đã tồn tại');
+    throw new ConflictError('Username đã tồn tại');
   }
   
   // tạo user mới
@@ -45,7 +46,7 @@ export async function loginUser(username) {
   });
   
   if (!user) {
-    throw new Error('Username không tồn tại');
+    throw new NotFoundError('Username không tồn tại');
   }
   
   // cập nhật lastLogin
@@ -78,7 +79,7 @@ export async function getUserPublicKey(username) {
   });
   
   if (!user) {
-    throw new Error('Username không tồn tại');
+    throw new NotFoundError('Username không tồn tại');
   }
   
   return {

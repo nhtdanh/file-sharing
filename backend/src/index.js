@@ -4,6 +4,10 @@ import dotenv from 'dotenv';
 import 'express-async-errors';
 import { connectDatabase, prisma } from './config/db.js';
 import authRoutes from './routes/authRoutes.js';
+import fileRoutes from './routes/fileRoutes.js';
+import shareRoutes from './routes/shareRoutes.js';
+import userRoutes from './routes/userRoutes.js';
+import { errorHandler } from './middleware/errorHandler.js';
 
 dotenv.config();
 
@@ -18,7 +22,6 @@ app.use(cors({
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ extended: true, limit: '100mb' }));
 
-// API v1 router
 const apiRouter = express.Router();
 
 apiRouter.get('/health', async (req, res) => {
@@ -42,23 +45,17 @@ apiRouter.get('/health', async (req, res) => {
   }
 });
 
-// Routes
-apiRouter.use('/auth', authRoutes);
-// apiRouter.use('/files', fileRoutes);
-// apiRouter.use('/users', userRoutes);
 
-// Mount API router với prefix /api/v1
+apiRouter.use('/auth', authRoutes);
+apiRouter.use('/users', userRoutes);
+apiRouter.use('/files', shareRoutes); // Share routes đặt trước
+apiRouter.use('/files', fileRoutes);
+
+// versioning
 app.use('/api/v1', apiRouter);
 
-//err
-app.use((err, req, res, next) => {
-  console.error('Lỗi:', err);
-  
-  res.status(err.status || 500).json({
-    status: 'error',
-    error: err.message || 'Internal server error'
-  });
-});
+// phải đặt cuối
+app.use(errorHandler);
 
 //404
 app.use((req, res) => {
