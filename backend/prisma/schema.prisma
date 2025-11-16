@@ -1,0 +1,64 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                  String   @id @default(uuid())
+  username            String   @unique @db.VarChar(50)
+  publicKey           String   @db.Text @map("public_key")
+  encryptedPrivateKey String   @db.Text @map("encrypted_private_key")
+  salt                String   @db.VarChar(64)
+  createdAt           DateTime @default(now()) @map("created_at")
+  lastLogin           DateTime? @map("last_login")
+  
+  files       File[]       @relation("Owner")
+  sharedFiles FileShare[]  @relation("SharedTo")
+  sharedBy    FileShare[]  @relation("SharedBy")
+  
+  @@map("users")
+}
+
+model File {
+  id          String   @id @default(uuid())
+  ownerId     String   @map("owner_id")
+  encryptedBlob Bytes  @db.LongBlob @map("encrypted_blob")
+  iv          Bytes    @db.Binary(12)
+  authTag     Bytes    @db.Binary(16) @map("auth_tag")
+  fileName    String?  @map("file_name") @db.VarChar(255)
+  fileSize    BigInt   @map("file_size")
+  mimeType    String?  @map("mime_type") @db.VarChar(100)
+  uploadedAt  DateTime @default(now()) @map("uploaded_at")
+  
+  owner       User        @relation("Owner", fields: [ownerId], references: [id], onDelete: Cascade)
+  shares      FileShare[]
+  
+  @@index([ownerId])
+  @@index([uploadedAt])
+  @@map("files")
+}
+
+model FileShare {
+  id              Int      @id @default(autoincrement())
+  fileId          String   @map("file_id")
+  sharedToUserId  String   @map("shared_to_user")
+  encryptedAesKey String   @db.Text @map("encrypted_aes_key")
+  canDownload     Boolean  @default(true) @map("can_download")
+  canReshare      Boolean  @default(false) @map("can_reshare")
+  sharedById      String?  @map("shared_by")
+  sharedAt        DateTime @default(now()) @map("shared_at")
+  
+  file         File  @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  sharedToUser User  @relation("SharedTo", fields: [sharedToUserId], references: [id], onDelete: Cascade)
+  sharedByUser User? @relation("SharedBy", fields: [sharedById], references: [id], onDelete: SetNull)
+  
+  @@unique([fileId, sharedToUserId])
+  @@index([sharedToUserId])
+  @@index([fileId])
+  @@map("file_shares")
+}
+
