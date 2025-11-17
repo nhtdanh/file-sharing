@@ -1,5 +1,6 @@
 import axios, { type AxiosInstance, type InternalAxiosRequestConfig, type AxiosResponse, type AxiosError } from 'axios';
 import type { ApiResponse } from '@/types';
+import { tokenStorage } from './storage';
 
 const getBaseURL = (): string => {
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -18,7 +19,7 @@ const apiClient: AxiosInstance = axios.create({
 // request
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = getToken();
+    const token = tokenStorage.get();
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -50,7 +51,7 @@ apiClient.interceptors.response.use(
     const { status, data } = error.response;
     // 401 - Unauthorized
     if (status === 401) {
-      clearToken();
+      tokenStorage.clear();
     }
 
     //thêm statusCode
@@ -66,24 +67,5 @@ apiClient.interceptors.response.use(
     return Promise.reject(errorResponse);
   }
 );
-
-
-function getToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    return localStorage.getItem('token');
-  } catch {
-    return null;
-  }
-}
-
-function clearToken(): void {
-  if (typeof window === 'undefined') return;
-  try {
-    localStorage.removeItem('token');
-  } catch {
-    // 
-  }
-}
 
 export default apiClient;
