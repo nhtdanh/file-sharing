@@ -57,3 +57,5 @@ htmlcov/
 *.tmp
 *.temp
 
+#ghi chú cho bản thân
+note.md

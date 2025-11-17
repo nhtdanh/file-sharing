@@ -85,7 +85,7 @@ Frontend sẽ chạy tại port `http://localhost:3000`
 - File Upload (encrypted client-side)
 - File Download (decrypted client-side)
 - File Sharing (share với nhiều user)
-- Zero-Knowledge: Server không thấy nội dung file
+- Zero-Knowledge: Server không verify password và không thấy nội dung file
 
 ## Security
 
