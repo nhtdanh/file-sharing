@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/form';
 import { toast } from 'react-toastify';
 import { Loader2 } from 'lucide-react';
-import { getErrorMessage } from '@/lib/errorUtils';
+import { getErrorMessage } from '@/utils/errorUtils';
 
 //validate
 const registerSchema = z

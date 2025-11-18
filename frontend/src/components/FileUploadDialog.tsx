@@ -20,7 +20,7 @@ import {
   encryptAESKeyWithRSA,
   importPublicKey,
 } from '@/lib/crypto';
-import { getErrorMessage } from '@/lib/errorUtils';
+import { getErrorMessage } from '@/utils/errorUtils';
 
 interface FileUploadDialogProps {
   open: boolean;

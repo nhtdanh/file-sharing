@@ -24,11 +24,11 @@ import {
 } from '@/components/ui/form';
 import { toast } from 'react-toastify';
 import { Loader2 } from 'lucide-react';
-import { getErrorMessage } from '@/lib/errorUtils';
+import { getErrorMessage } from '@/utils/errorUtils';
 
 //validate
 const loginSchema = z.object({
-  username: z.string().min(1, 'Username không được để trống').min(3, 'Username phải có ít nhất 3 ký tự'),
+  username: z.string().min(1, 'Username không được để trống').min(6, 'Username phải có ít nhất 6 ký tự'),
   password: z.string().min(1, 'Password không được để trống').min(8, 'Password phải có ít nhất 8 ký tự'),
 });
 

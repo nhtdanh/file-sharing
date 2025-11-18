@@ -26,9 +26,10 @@ import {
 } from '@/components/ui/table';
 import { FileUploadDialog } from '@/components/FileUploadDialog';
 import { DeleteFileDialog } from '@/components/DeleteFileDialog';
-import { formatFileSize, formatDate, getFileIconName } from '@/lib/formatUtils';
-import { downloadFile } from '@/lib/fileUtils';
-import { getErrorMessage } from '@/lib/errorUtils';
+import { ShareFileDialog } from '@/components/ShareFileDialog';
+import { formatFileSize, formatDate, getFileIconName } from '@/utils/formatUtils';
+import { downloadFile } from '@/utils/fileUtils';
+import { getErrorMessage } from '@/utils/errorUtils';
 import { toast } from 'react-toastify';
 import { Loader2 } from 'lucide-react';
 import type { FileData, Pagination } from '@/types';
@@ -64,6 +65,8 @@ export function FilesPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [fileToDelete, setFileToDelete] = useState<{ id: string; fileName: string | null } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [fileToShare, setFileToShare] = useState<{ id: string; fileName: string | null } | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // Fetch files
@@ -223,6 +226,12 @@ export function FilesPage() {
     }
   };
 
+  // Handle share file - open dialog
+  const handleShareClick = (fileId: string, fileName: string | null) => {
+    setFileToShare({ id: fileId, fileName });
+    setShareDialogOpen(true);
+  };
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -251,6 +260,25 @@ export function FilesPage() {
         onConfirm={handleConfirmDelete}
         isDeleting={isDeleting}
       />
+
+      {/* Share File Dialog */}
+      {fileToShare && (
+        <ShareFileDialog
+          open={shareDialogOpen}
+          onOpenChange={(open) => {
+            setShareDialogOpen(open);
+            if (!open) {
+              setFileToShare(null);
+            }
+          }}
+          fileId={fileToShare.id}
+          fileName={fileToShare.fileName}
+          onShareSuccess={() => {
+            // Có thể refresh list nếu cần, nhưng share không thay đổi file list
+            setFileToShare(null);
+          }}
+        />
+      )}
 
       {/* Loading State */}
       {isLoading && (
@@ -347,7 +375,7 @@ export function FilesPage() {
                           size="icon"
                           variant="outline"
                           className="h-8 w-8 shadow-none bg-white border-black text-black hover:bg-secondary hover:text-secondary-foreground hover:border-secondary"
-                          onClick={() => console.log('Share:', file.id)}
+                          onClick={() => handleShareClick(file.id, file.fileName)}
                           title="Share"
                         >
                           <Share2 className="h-4 w-4" />
