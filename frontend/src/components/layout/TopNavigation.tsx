@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { Upload, User } from 'lucide-react';
+import { User } from 'lucide-react';
 import { useAuth } from '@/context';
 import { Button } from '@/components/ui/button';
 import {
@@ -32,11 +32,11 @@ export function TopNavigation() {
       <div className="flex h-14 items-center px-4 max-w-screen-2xl mx-auto w-full">
         {/* Logo */}
         <Link to="/dashboard" className="mr-6 flex items-center space-x-2">
-          <span className="font-bold text-xl">FileShare</span>
+          <span className="font-bold text-xl">ZKFileSharing</span>
         </Link>
 
         <div className="flex flex-1 items-center justify-end space-x-2">
-          {/* Upload Button */}
+          {/* Upload Button
           <Button
             variant="ghost"
             size="icon"
@@ -44,7 +44,7 @@ export function TopNavigation() {
             title="Upload Files"
           >
             <Upload className="h-5 w-5" />
-          </Button>
+          </Button> */}
 
           {/* User Menu */}
           <DropdownMenu>
@@ -63,11 +63,11 @@ export function TopNavigation() {
                   <p className="text-sm font-medium leading-none">
                     {user?.username || 'User'}
                   </p>
-                  {user?.userId && (
+                  {/* {user?.userId && (
                     <p className="text-xs leading-none text-muted-foreground">
                       {user.userId.substring(0, 8)}...
                     </p>
-                  )}
+                  )} */}
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />

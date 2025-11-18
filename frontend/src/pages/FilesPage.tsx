@@ -3,6 +3,7 @@ import {
   Download,
   Trash2,
   Share2,
+  Users,
   File,
   Image,
   Video,
@@ -27,6 +28,7 @@ import {
 import { FileUploadDialog } from '@/components/FileUploadDialog';
 import { DeleteFileDialog } from '@/components/DeleteFileDialog';
 import { ShareFileDialog } from '@/components/ShareFileDialog';
+import { FileSharesDialog } from '@/components/FileSharesDialog';
 import { formatFileSize, formatDate, getFileIconName } from '@/utils/formatUtils';
 import { downloadFile } from '@/utils/fileUtils';
 import { getErrorMessage } from '@/utils/errorUtils';
@@ -67,6 +69,8 @@ export function FilesPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [fileToShare, setFileToShare] = useState<{ id: string; fileName: string | null } | null>(null);
+  const [sharesDialogOpen, setSharesDialogOpen] = useState(false);
+  const [fileWithShares, setFileWithShares] = useState<{ id: string; fileName: string | null } | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // Fetch files
@@ -280,6 +284,21 @@ export function FilesPage() {
         />
       )}
 
+      {/* File Shares Dialog */}
+      {fileWithShares && (
+        <FileSharesDialog
+          open={sharesDialogOpen}
+          onOpenChange={(open) => {
+            setSharesDialogOpen(open);
+            if (!open) {
+              setFileWithShares(null);
+            }
+          }}
+          fileId={fileWithShares.id}
+          fileName={fileWithShares.fileName}
+        />
+      )}
+
       {/* Loading State */}
       {isLoading && (
         <div className="space-y-4">
@@ -370,6 +389,18 @@ export function FilesPage() {
                           ) : (
                             <Download className="h-4 w-4" />
                           )}
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="outline"
+                          className="h-8 w-8 shadow-none bg-white border-black text-black hover:bg-chart-4 hover:text-white hover:border-chart-4"
+                          onClick={() => {
+                            setFileWithShares({ id: file.id, fileName: file.fileName });
+                            setSharesDialogOpen(true);
+                          }}
+                          title="Danh sách share"
+                        >
+                          <Users className="h-4 w-4" />
                         </Button>
                         <Button
                           size="icon"

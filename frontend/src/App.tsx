@@ -3,11 +3,7 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { ProtectedRoute } from './components';
 import { DashboardLayout } from './components/layout';
-import { LoginPage, RegisterPage, FilesPage } from './pages';
-
-function SharedPage() {
-  return <div>Shared Files Page (Coming soon)</div>;
-}
+import { LoginPage, RegisterPage, FilesPage, SharedPage } from './pages';
 
 function App() {
   return (
