@@ -133,11 +133,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
       console.log('[Login] Zero-Knowledge: Password verification xảy ra ở đây (client-side)');
       console.log('[Login] Nếu password sai → decrypt sẽ thất bại');
       
-      const privateKey = await decryptPrivateKeyWithPassword(
-        loginData.encryptedPrivateKey,
-        password,
-        loginData.salt
-      );
+      let privateKey: CryptoKey;
+      try {
+        privateKey = await decryptPrivateKeyWithPassword(
+          loginData.encryptedPrivateKey,
+          password,
+          loginData.salt
+        );
+      } catch {
+        // Password sai hoặc lỗi decrypt - thống nhất message để bảo mật
+        throw new Error('Username hoặc password sai');
+      }
       console.log('[Login] Private key đã được giải mã thành công');
       console.log('[Login] Password đúng - xác thực thành công (client-side)');
 

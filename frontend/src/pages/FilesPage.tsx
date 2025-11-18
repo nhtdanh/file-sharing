@@ -25,7 +25,12 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { FileUploadDialog } from '@/components/FileUploadDialog';
+import { DeleteFileDialog } from '@/components/DeleteFileDialog';
 import { formatFileSize, formatDate, getFileIconName } from '@/lib/formatUtils';
+import { downloadFile } from '@/lib/fileUtils';
+import { getErrorMessage } from '@/lib/errorUtils';
+import { toast } from 'react-toastify';
+import { Loader2 } from 'lucide-react';
 import type { FileData, Pagination } from '@/types';
 
 // Map icon names to Lucide icons
@@ -46,15 +51,19 @@ function getFileIcon(mimeType: string | null): LucideIcon {
 }
 
 export function FilesPage() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, getPrivateKey } = useAuth();
   const [files, setFiles] = useState<FileData[]>([]);
   const [pagination, setPagination] = useState<Pagination | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [limit] = useState(20);
+  const [limit] = useState(10);
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
+  const [downloadingFileId, setDownloadingFileId] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [fileToDelete, setFileToDelete] = useState<{ id: string; fileName: string | null } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // Fetch files
@@ -150,8 +159,72 @@ export function FilesPage() {
     setCurrentPage((prev) => prev);
   };
 
+  // Handle download file
+  const handleDownload = async (fileId: string, fileName: string | null) => {
+    try {
+      setDownloadingFileId(fileId);
+
+      // Lấy private key từ AuthContext
+      const privateKey = await getPrivateKey();
+      if (!privateKey) {
+        toast.error('Không tìm thấy private key. Vui lòng đăng nhập lại.');
+        return;
+      }
+
+      // Download và decrypt file
+      await downloadFile(fileId, privateKey, fileName);
+      // Không hiển thị success vì decrypt chỉ là bước giải mã, download đã được trigger tự động
+    } catch (error) {
+      console.error('[Download] Lỗi:', error);
+      toast.error(getErrorMessage(error, 'Download file thất bại'));
+    } finally {
+      setDownloadingFileId(null);
+    }
+  };
+
+  // Handle delete file - open dialog
+  const handleDeleteClick = (fileId: string, fileName: string | null) => {
+    setFileToDelete({ id: fileId, fileName });
+    setDeleteDialogOpen(true);
+  };
+
+  // Handle confirm delete
+  const handleConfirmDelete = async () => {
+    if (!fileToDelete) return;
+
+    try {
+      setIsDeleting(true);
+      await fileService.delete(fileToDelete.id);
+      toast.success('Xóa file thành công');
+      
+      setDeleteDialogOpen(false);
+      setFileToDelete(null);
+      
+      // Refresh file list
+      // Nếu đang ở trang cuối và chỉ còn 1 file, chuyển về trang trước
+      if (pagination && files.length === 1 && currentPage > 1) {
+        setCurrentPage(currentPage - 1);
+      } else {
+        // Force re-fetch bằng cách set lại currentPage (tương tự handleUploadSuccess)
+        if (currentPage === 1) {
+          setCurrentPage(0);
+          setTimeout(() => setCurrentPage(1), 0);
+        } else {
+          // Force re-fetch bằng cách set về trang trước rồi set lại trang hiện tại
+          setCurrentPage(currentPage - 1);
+          setTimeout(() => setCurrentPage(currentPage), 0);
+        }
+      }
+    } catch (error) {
+      console.error('[Delete] Lỗi:', error);
+      toast.error(getErrorMessage(error, 'Xóa file thất bại'));
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">My Files</h1>
@@ -168,6 +241,15 @@ export function FilesPage() {
         open={isUploadDialogOpen}
         onOpenChange={setIsUploadDialogOpen}
         onUploadSuccess={handleUploadSuccess}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <DeleteFileDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        fileName={fileToDelete?.fileName || null}
+        onConfirm={handleConfirmDelete}
+        isDeleting={isDeleting}
       />
 
       {/* Loading State */}
@@ -215,17 +297,14 @@ export function FilesPage() {
       {/* Files List */}
       {!isLoading && !error && files.length > 0 && (
         <div className="space-y-4">
-          <div className="text-sm text-muted-foreground">
-            Hiển thị {files.length} / {pagination?.total} files
-          </div>
           <div className="rounded-lg border shadow-md">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[40%] bg-primary text-primary-foreground">Tên file</TableHead>
-                  <TableHead className="w-[15%] bg-primary text-primary-foreground">Kích thước</TableHead>
-                  <TableHead className="w-[20%] bg-primary text-primary-foreground">Ngày upload</TableHead>
-                  <TableHead className="w-[25%] text-right bg-primary text-primary-foreground">Thao tác</TableHead>
+                  <TableHead className="w-[40%] bg-muted text-muted-foreground font-bold">Tên file</TableHead>
+                  <TableHead className="w-[15%] bg-muted text-muted-foreground font-bold">Kích thước</TableHead>
+                  <TableHead className="w-[20%] bg-muted text-muted-foreground font-bold">Ngày upload</TableHead>
+                  <TableHead className="w-[25%] text-right bg-muted text-muted-foreground font-bold">Thao tác</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -252,15 +331,22 @@ export function FilesPage() {
                       <div className="flex items-center justify-end gap-2">
                         <Button
                           size="icon"
-                          className="h-8 w-8 shadow-md bg-accent text-accent-foreground hover:bg-accent/90"
-                          onClick={() => console.log('Download:', file.id)}
+                          variant="outline"
+                          className="h-8 w-8 shadow-none bg-white border-black text-black hover:bg-accent hover:text-accent-foreground hover:border-accent"
+                          onClick={() => handleDownload(file.id, file.fileName)}
+                          disabled={downloadingFileId === file.id}
                           title="Download"
                         >
-                          <Download className="h-4 w-4" />
+                          {downloadingFileId === file.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Download className="h-4 w-4" />
+                          )}
                         </Button>
                         <Button
                           size="icon"
-                          className="h-8 w-8 shadow-md bg-secondary text-secondary-foreground hover:bg-secondary/90"
+                          variant="outline"
+                          className="h-8 w-8 shadow-none bg-white border-black text-black hover:bg-secondary hover:text-secondary-foreground hover:border-secondary"
                           onClick={() => console.log('Share:', file.id)}
                           title="Share"
                         >
@@ -268,8 +354,9 @@ export function FilesPage() {
                         </Button>
                         <Button
                           size="icon"
-                          className="h-8 w-8 shadow-md bg-primary text-primary-foreground hover:bg-primary/90"
-                          onClick={() => console.log('Delete:', file.id)}
+                          variant="outline"
+                          className="h-8 w-8 shadow-none bg-white border-black text-black hover:bg-primary hover:text-primary-foreground hover:border-primary"
+                          onClick={() => handleDeleteClick(file.id, file.fileName)}
                           title="Delete"
                         >
                           <Trash2 className="h-4 w-4" />

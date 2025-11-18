@@ -46,7 +46,7 @@ export async function loginUser(username) {
   });
   
   if (!user) {
-    throw new NotFoundError('Username không tồn tại');
+    throw new NotFoundError('Username hoặc password sai');
   }
   
   // cập nhật lastLogin
