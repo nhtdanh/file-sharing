@@ -3,7 +3,7 @@ import { validateFileSize, convertBase64ToBuffer, validateMimeType } from '../ut
 import { ValidationError, NotFoundError } from '../utils/errors.js';
 
 export async function uploadFile(ownerId, fileData) {
-  const { encryptedBlob, iv, authTag, fileName, fileSize, mimeType } = fileData;
+  const { encryptedBlob, iv, authTag, encryptedAesKey, fileName, fileSize, mimeType } = fileData;
   
   // validate MIME type
   validateMimeType(mimeType);
@@ -27,12 +27,18 @@ export async function uploadFile(ownerId, fileData) {
   // validate file size sau khi decode 
   validateFileSize(encryptedBlobBuffer.length);
   
+  // validate encryptedAesKey
+  if (!encryptedAesKey || typeof encryptedAesKey !== 'string' || encryptedAesKey.trim().length === 0) {
+    throw new ValidationError('encryptedAesKey không được để trống');
+  }
+  
   const file = await prisma.file.create({
     data: {
       ownerId,
       encryptedBlob: encryptedBlobBuffer,
       iv: ivBuffer,
       authTag: authTagBuffer,
+      encryptedAesKey,
       fileName,
       fileSize: BigInt(fileSizeNum),
       mimeType
@@ -106,13 +112,23 @@ export async function getFileById(fileId, userId) {
         }
       ]
     },
-    include: {
+    select: {
+      id: true,
+      ownerId: true,
+      encryptedBlob: true,
+      iv: true,
+      authTag: true,
+      encryptedAesKey: true, // Cho owner
+      fileName: true,
+      fileSize: true,
+      mimeType: true,
+      uploadedAt: true,
       shares: {
         where: {
           sharedToUserId: userId
         },
         select: {
-          encryptedAesKey: true
+          encryptedAesKey: true // Cho shared user
         }
       }
     }

@@ -3,11 +3,7 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { ProtectedRoute } from './components';
 import { DashboardLayout } from './components/layout';
-import { LoginPage, RegisterPage } from './pages';
-
-function FilesPage() {
-  return <div>Files Page (Coming soon)</div>;
-}
+import { LoginPage, RegisterPage, FilesPage } from './pages';
 
 function SharedPage() {
   return <div>Shared Files Page (Coming soon)</div>;
@@ -50,6 +46,7 @@ function App() {
         theme="light"
         toastStyle={{
           fontFamily: 'var(--font-sans)',
+          fontSize: '14px',
         }}
       />
     </BrowserRouter>

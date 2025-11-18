@@ -10,6 +10,7 @@ const uploadSchema = z.object({
   encryptedBlob: z.string().min(1),
   iv: z.string().min(1),
   authTag: z.string().min(1),
+  encryptedAesKey: z.string().min(1),
   fileName: z.string().max(255).optional().nullable(),
   fileSize: z.string().or(z.number()).refine((val) => {
     const num = Number(val);

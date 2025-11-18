@@ -10,7 +10,7 @@ export async function register(req, res) {
       username: user.username,
       createdAt: user.createdAt
     },
-    message: 'Đăng ký thành công'
+    message: 'Đăng kí thành công'
   });
 }
 

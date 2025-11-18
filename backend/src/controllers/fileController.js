@@ -3,10 +3,18 @@ import * as fileService from '../services/fileService.js';
 export async function upload(req, res) {
   const { userId } = req.user;
   const file = await fileService.uploadFile(userId, req.body);
+
+  const fileData = {
+    id: file.id,
+    fileName: file.fileName,
+    fileSize: file.fileSize.toString(),
+    mimeType: file.mimeType,
+    uploadedAt: file.uploadedAt
+  };
   
   res.status(201).json({
     status: 'success',
-    data: file,
+    data: fileData,
     message: 'Upload file thành công'
   });
 }
@@ -23,9 +31,18 @@ export async function list(req, res) {
   
   const result = await fileService.getFilesByOwner(userId, validPage, validLimit);
   
+  // Convert BigInt thành string mới serialize được
+  const files = result.files.map(file => ({
+    id: file.id,
+    fileName: file.fileName,
+    fileSize: file.fileSize.toString(),
+    mimeType: file.mimeType,
+    uploadedAt: file.uploadedAt
+  }));
+  
   res.json({
     status: 'success',
-    data: result.files,
+    data: files,
     pagination: result.pagination
   });
 }
@@ -36,6 +53,13 @@ export async function getById(req, res) {
   
   const file = await fileService.getFileById(id, userId);
   
+  // Nếu là owner: dùng encryptedAesKey từ File
+  // Nếu là shared user: dùng encryptedAesKey từ FileShare
+  const isOwner = file.ownerId === userId;
+  const encryptedAesKey = isOwner 
+    ? file.encryptedAesKey 
+    : (file.shares?.[0]?.encryptedAesKey || null);
+  
   const fileData = {
     id: file.id,
     encryptedBlob: file.encryptedBlob.toString('base64'),
@@ -45,7 +69,7 @@ export async function getById(req, res) {
     fileSize: file.fileSize.toString(),
     mimeType: file.mimeType,
     uploadedAt: file.uploadedAt,
-    encryptedAesKey: file.shares?.[0]?.encryptedAesKey || null
+    encryptedAesKey
   };
   
   res.json({

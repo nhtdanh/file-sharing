@@ -1,11 +1,13 @@
-// Session storage - userId, username
+// Session storage - userId, username, publicKey
 
 const USER_ID_KEY = 'user_id';
 const USERNAME_KEY = 'username';
+const PUBLIC_KEY_KEY = 'public_key';
 
 export interface SessionData {
   userId: string;
   username: string;
+  publicKey?: string; // Optional vì có thể không có khi load từ storage cũ
 }
 
 export const userSessionStorage = {
@@ -15,6 +17,9 @@ export const userSessionStorage = {
     try {
       localStorage.setItem(USER_ID_KEY, data.userId);
       localStorage.setItem(USERNAME_KEY, data.username);
+      if (data.publicKey) {
+        localStorage.setItem(PUBLIC_KEY_KEY, data.publicKey);
+      }
     } catch {
       // 
     }
@@ -26,12 +31,13 @@ export const userSessionStorage = {
     try {
       const userId = localStorage.getItem(USER_ID_KEY);
       const username = localStorage.getItem(USERNAME_KEY);
+      const publicKey = localStorage.getItem(PUBLIC_KEY_KEY);
       
       if (!userId || !username) {
         return null;
       }
       
-      return { userId, username };
+      return { userId, username, publicKey: publicKey || undefined };
     } catch {
       return null;
     }
@@ -43,6 +49,7 @@ export const userSessionStorage = {
     try {
       localStorage.removeItem(USER_ID_KEY);
       localStorage.removeItem(USERNAME_KEY);
+      localStorage.removeItem(PUBLIC_KEY_KEY);
     } catch {
       // 
     }

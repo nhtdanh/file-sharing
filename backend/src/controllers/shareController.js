@@ -33,9 +33,29 @@ export async function getSharedFiles(req, res) {
   
   const result = await shareService.getSharedFiles(userId, validPage, validLimit);
   
+  // Convert BigInt thành string để serialize JSON
+  const sharedFiles = result.sharedFiles.map(share => ({
+    id: share.id,
+    fileId: share.fileId,
+    sharedToUserId: share.sharedToUserId,
+    encryptedAesKey: share.encryptedAesKey,
+    canDownload: share.canDownload,
+    canReshare: share.canReshare,
+    sharedById: share.sharedById,
+    sharedAt: share.sharedAt,
+    file: {
+      id: share.file.id,
+      fileName: share.file.fileName,
+      fileSize: share.file.fileSize.toString(),
+      mimeType: share.file.mimeType,
+      uploadedAt: share.file.uploadedAt
+    },
+    sharedByUser: share.sharedByUser
+  }));
+  
   res.json({
     status: 'success',
-    data: result.sharedFiles,
+    data: sharedFiles,
     pagination: result.pagination
   });
 }

@@ -21,8 +21,8 @@ export function Sidebar({ className }: SidebarProps) {
   ];
 
   return (
-    <div className={cn('pb-12 w-64', className)}>
-      <div className="space-y-4 py-4">
+    <div className={cn('h-full w-64 bg-sidebar text-sidebar-foreground flex flex-col', className)}>
+      <div className="space-y-4 py-4 flex-1">
         <div className="px-3 py-2">
           <div className="space-y-1">
             {navItems.map((item) => (
@@ -33,8 +33,8 @@ export function Sidebar({ className }: SidebarProps) {
                   cn(
                     'flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                     isActive
-                      ? 'bg-accent text-accent-foreground'
-                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                      ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-md'
+                      : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
                   )
                 }
               >

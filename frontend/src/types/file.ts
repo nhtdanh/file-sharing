@@ -3,6 +3,7 @@ export interface UploadFileRequest {
   encryptedBlob: string; // base64
   iv: string; // base64
   authTag: string; // base64
+  encryptedAesKey: string; // base64 - AES key đã mã hóa với RSA public key của owner
   fileName?: string | null;
   fileSize: string | number;
   mimeType: string;

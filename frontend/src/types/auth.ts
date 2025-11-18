@@ -36,4 +36,5 @@ export interface AuthUser {
   userId: string;
   username: string;
   token: string;
+  publicKey: string; // RSA public key để mã hóa AES key khi upload
 }

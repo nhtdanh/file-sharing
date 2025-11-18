@@ -24,15 +24,16 @@ model User {
 }
 
 model File {
-  id          String   @id @default(uuid())
-  ownerId     String   @map("owner_id")
-  encryptedBlob Bytes  @db.LongBlob @map("encrypted_blob")
-  iv          Bytes    @db.Binary(12)
-  authTag     Bytes    @db.Binary(16) @map("auth_tag")
-  fileName    String?  @map("file_name") @db.VarChar(255)
-  fileSize    BigInt   @map("file_size")
-  mimeType    String?  @map("mime_type") @db.VarChar(100)
-  uploadedAt  DateTime @default(now()) @map("uploaded_at")
+  id              String   @id @default(uuid())
+  ownerId         String   @map("owner_id")
+  encryptedBlob   Bytes    @db.LongBlob @map("encrypted_blob")
+  iv              Bytes    @db.Binary(12)
+  authTag         Bytes    @db.Binary(16) @map("auth_tag")
+  encryptedAesKey String   @db.Text @map("encrypted_aes_key")
+  fileName        String?  @map("file_name") @db.VarChar(255)
+  fileSize        BigInt   @map("file_size")
+  mimeType        String?  @map("mime_type") @db.VarChar(100)
+  uploadedAt      DateTime @default(now()) @map("uploaded_at")
   
   owner       User        @relation("Owner", fields: [ownerId], references: [id], onDelete: Cascade)
   shares      FileShare[]

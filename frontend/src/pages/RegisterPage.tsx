@@ -73,7 +73,7 @@ export function RegisterPage() {
       setIsLoading(true);
       await register(data.username, data.password);
       
-      toast.success('Đăng ký thành công! Vui lòng đăng nhập.');
+      toast.success('Đăng kí thành công!');
       
       //redirect về login page
       navigate('/login', { replace: true });
