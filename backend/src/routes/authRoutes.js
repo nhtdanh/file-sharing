@@ -7,7 +7,7 @@ const router = express.Router();
 
 //validate schemas
 const registerSchema = z.object({
-  username: z.string().min(3).max(50),
+  username: z.string().min(6).max(16),
   publicKey: z.string().min(100),
   encryptedPrivateKey: z.string().min(100),
   salt: z.string().length(64)

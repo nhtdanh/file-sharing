@@ -52,6 +52,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Register
   const register = useCallback(async (username: string, password: string) => {
     try {
+      console.log('[Register] Đăng ký:', username);
+
       // Tạo RSA keypair
       const keyPair = await generateAndExportKeyPair();
 
@@ -62,25 +64,27 @@ export function AuthProvider({ children }: AuthProviderProps) {
       );
 
       // Gửi lên server
-      await authService.register({
+      const registerData = {
         username,
         publicKey: keyPair.publicKey,
         encryptedPrivateKey,
         salt,
-      });
+      };
 
-      // Không tự động login sau register, user cần login
+      await authService.register(registerData);
+      console.log('[Register] Thành công:', username);
     } catch (error) {
-      if (error instanceof Error) {
-        throw error;
-      }
-      throw new Error('Đăng ký thất bại');
+      console.error('[Register] Lỗi:', error);
+      //để component xử lý
+      throw error;
     }
   }, []);
 
   // Login
   const login = useCallback(async (username: string, password: string) => {
     try {
+      console.log('[Login] Đăng nhập:', username);
+
       // Gửi request login
       const loginData = await authService.login({ username });
 
@@ -108,11 +112,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
         username: loginData.username,
         token: loginData.token,
       });
+      console.log('[Login] Thành công:', username);
     } catch (error) {
-      if (error instanceof Error) {
-        throw error;
-      }
-      throw new Error('Đăng nhập thất bại');
+      console.error('[Login] Lỗi:', error);
+      //  để component xử lý
+      throw error;
     }
   }, []);
 

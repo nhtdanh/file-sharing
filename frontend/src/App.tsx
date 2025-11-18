@@ -1,16 +1,9 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import { ProtectedRoute } from './components';
 import { DashboardLayout } from './components/layout';
-import { Toaster } from './components/ui/sonner';
-
-// Page (sẽ tạo sau)
-function LoginPage() {
-  return <div>Login Page (Coming soon)</div>;
-}
-
-function RegisterPage() {
-  return <div>Register Page (Coming soon)</div>;
-}
+import { LoginPage, RegisterPage } from './pages';
 
 function FilesPage() {
   return <div>Files Page (Coming soon)</div>;
@@ -44,7 +37,21 @@ function App() {
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
-      <Toaster />
+      <ToastContainer
+        position="top-right"
+        autoClose={2000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+        toastStyle={{
+          fontFamily: 'var(--font-sans)',
+        }}
+      />
     </BrowserRouter>
   );
 }
