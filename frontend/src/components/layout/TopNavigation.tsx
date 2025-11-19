@@ -33,9 +33,14 @@ export function TopNavigation() {
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex h-14 items-center px-4 max-w-screen-2xl mx-auto w-full">
         {/* Logo */}
-        <Link to="/dashboard" className="mr-6 flex items-center space-x-2">
-          <span className="font-bold text-xl text-black">
-            FileSharing
+        <Link to="/dashboard" className="mr-6 flex items-center space-x-1">
+          <img 
+            src="/logo.png" 
+            alt="SecureShare Logo" 
+            className="h-8 w-8 object-contain"
+          />
+          <span className="font-bold text-xl text-accent">
+            SecureShare
           </span>
         </Link>
 

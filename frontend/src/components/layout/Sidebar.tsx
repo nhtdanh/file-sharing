@@ -21,7 +21,7 @@ export function Sidebar({ className }: SidebarProps) {
   ];
 
   return (
-    <div className={cn('h-full w-64 bg-sidebar text-sidebar-foreground flex flex-col', className)}>
+    <div className={cn('h-full w-48 bg-sidebar text-sidebar-foreground flex flex-col', className)}>
       <div className="space-y-4 py-4 flex-1">
         <div className="px-3 py-2">
           <div className="space-y-1">
