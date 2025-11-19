@@ -44,6 +44,7 @@ const ALLOWED_MIME_TYPES = [
   'text/plain',
   'text/csv',
   'text/markdown',
+  'application/json',
   // Images
   'image/jpeg',
   'image/jpg',

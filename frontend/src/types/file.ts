@@ -30,4 +30,8 @@ export interface FileDetailData extends FileData {
 export interface FileListQuery {
   page?: number | string;
   limit?: number | string;
+  search?: string;
+  sortBy?: 'name' | 'size' | 'date';
+  sortOrder?: 'asc' | 'desc';
+  categoryFilter?: string; // 'image', 'video', 'audio', 'document', 'archive'
 }

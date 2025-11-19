@@ -4,8 +4,11 @@ import 'react-toastify/dist/ReactToastify.css';
 import { ProtectedRoute } from './components';
 import { DashboardLayout } from './components/layout';
 import { LoginPage, RegisterPage, FilesPage, SharedPage } from './pages';
+import { useTheme } from './context/useTheme';
 
 function App() {
+  const { theme } = useTheme();
+
   return (
     <BrowserRouter>
       <Routes>
@@ -39,7 +42,7 @@ function App() {
         pauseOnFocusLoss
         draggable
         pauseOnHover
-        theme="light"
+        theme={theme}
         toastStyle={{
           fontFamily: 'var(--font-sans)',
           fontSize: '14px',

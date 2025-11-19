@@ -1,10 +1,18 @@
 import { useState, useEffect, useRef } from 'react';
-import { Download, UserRound } from 'lucide-react';
+import { Download, UserRound, Search, ArrowUp, ArrowDown } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useAuth } from '@/context';
 import { shareService } from '@/services';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Table,
   TableBody,
@@ -53,7 +61,32 @@ export function SharedPage() {
   const [limit] = useState(10);
   const [isFetching, setIsFetching] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [sortBy, setSortBy] = useState<'name' | 'size' | 'date'>('date');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [categoryFilter, setCategoryFilter] = useState<string>('');
   const abortControllerRef = useRef<AbortController | null>(null);
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Debounce search query
+  useEffect(() => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    searchTimeoutRef.current = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      // Reset về trang 1 khi search thay đổi
+      setCurrentPage(1);
+    }, 300);
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [searchQuery]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -74,10 +107,14 @@ export function SharedPage() {
         setIsFetching(true);
         setError(null);
 
-        console.log('[SharedPage] Fetching shared files - Page:', currentPage, 'Limit:', limit);
+        console.log('[SharedPage] Fetching shared files - Page:', currentPage, 'Limit:', limit, 'Search:', debouncedSearch, 'Sort:', sortBy, sortOrder, 'Filter:', categoryFilter);
         const result = await shareService.getSharedFiles({
           page: currentPage,
           limit,
+          search: debouncedSearch || undefined,
+          sortBy,
+          sortOrder,
+          categoryFilter: categoryFilter || undefined,
         });
 
         if (signal.aborted) {
@@ -111,7 +148,7 @@ export function SharedPage() {
     return () => {
       controller.abort();
     };
-  }, [isAuthenticated, currentPage, limit]);
+  }, [isAuthenticated, currentPage, limit, debouncedSearch, sortBy, sortOrder, categoryFilter]);
 
   const handlePageChange = (newPage: number) => {
     if (pagination && newPage >= 1 && newPage <= pagination.totalPages) {
@@ -149,9 +186,83 @@ export function SharedPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Shared With Me</h1>
+      {/* Header */}
+      <div className="flex items-center justify-between -mt-2">
+        <h1 className="text-xl font-bold bg-secondary text-secondary-foreground px-6 py-2 rounded-full shadow-xs">
+          Shared With Me
+        </h1>
       </div>
+
+      {/* Search, Sort và Filter - hiển thị khi có file hoặc đang có search/filter */}
+      {pagination && (pagination.total > 0 || debouncedSearch || categoryFilter) && (
+        <div className="flex items-center gap-3">
+          {/* Search Bar */}
+          <div className="relative w-full max-w-xs flex-shrink-0">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Nhập tên file..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+
+          {/* Filter và Sort */}
+          <div className="flex items-center gap-2 ml-auto">
+            {/* Filter by Category */}
+            <Select value={categoryFilter || 'all'} onValueChange={(value: string) => {
+              setCategoryFilter(value === 'all' ? '' : value);
+              setCurrentPage(1);
+            }}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="Loại file" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả</SelectItem>
+                <SelectItem value="image">Hình ảnh</SelectItem>
+                <SelectItem value="video">Video</SelectItem>
+                <SelectItem value="audio">Audio</SelectItem>
+                <SelectItem value="document">Tài liệu</SelectItem>
+                <SelectItem value="archive">Tệp nén</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Sort By */}
+            <Select value={sortBy} onValueChange={(value: 'name' | 'size' | 'date') => {
+              setSortBy(value);
+              setCurrentPage(1);
+            }}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="Sắp xếp" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="date">Ngày share</SelectItem>
+                <SelectItem value="name">Tên file</SelectItem>
+                <SelectItem value="size">Kích thước</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Sort Order*/}
+            <Button
+              variant="outline"
+              size="icon"
+              className="w-9 h-9"
+              onClick={() => {
+                setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+                setCurrentPage(1);
+              }}
+              title={sortOrder === 'asc' ? 'Tăng dần' : 'Giảm dần'}
+            >
+              {sortOrder === 'asc' ? (
+                <ArrowUp className="h-4 w-4" />
+              ) : (
+                <ArrowDown className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+        </div>
+      )}
 
       {isLoading && (
         <div className="space-y-4">
@@ -179,26 +290,41 @@ export function SharedPage() {
 
       {!isLoading && !error && sharedFiles.length === 0 && (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-12 text-center">
-          <p className="text-lg font-medium text-muted-foreground">Chưa có file nào được share cho bạn</p>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Khi người khác share file, bạn sẽ thấy chúng ở đây
-          </p>
+          {debouncedSearch || categoryFilter ? (
+            <>
+              <p className="text-lg font-medium text-muted-foreground">Không tìm thấy file nào phù hợp</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {debouncedSearch && categoryFilter
+                  ? `Không có file nào khớp với "${debouncedSearch}" và loại file đã chọn`
+                  : debouncedSearch
+                  ? `Không có file nào khớp với "${debouncedSearch}"`
+                  : 'Không có file nào thuộc loại đã chọn'}
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-lg font-medium text-muted-foreground">Chưa có file nào được share cho bạn</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Khi người khác share file, bạn sẽ thấy chúng ở đây
+              </p>
+            </>
+          )}
         </div>
       )}
 
       {!isLoading && !error && sharedFiles.length > 0 && (
         <div className="space-y-4">
-          <div className="rounded-lg border shadow-md">
-            <Table>
+          <div className="rounded-lg border shadow-md w-full">
+            <Table className="w-full">
               <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[40%] bg-muted text-muted-foreground font-bold">Tên file</TableHead>
-                  <TableHead className="w-[20%] bg-muted text-muted-foreground font-bold">Người share</TableHead>
-                  <TableHead className="w-[20%] bg-muted text-muted-foreground font-bold">Ngày share</TableHead>
-                  <TableHead className="w-[20%] bg-muted text-muted-foreground font-bold text-right">
-                    Thao tác
-                  </TableHead>
-                </TableRow>
+                        <TableRow>
+                          <TableHead className="w-[40%] bg-muted text-muted-foreground font-bold">Tên file</TableHead>
+                          <TableHead className="w-[20%] bg-muted text-muted-foreground font-bold">Người share</TableHead>
+                          <TableHead className="w-[20%] bg-muted text-muted-foreground font-bold">Ngày share</TableHead>
+                          <TableHead className="w-[20%] bg-muted text-muted-foreground font-bold text-right">
+                            Thao tác
+                          </TableHead>
+                        </TableRow>
               </TableHeader>
               <TableBody>
                 {sharedFiles.map((share) => (

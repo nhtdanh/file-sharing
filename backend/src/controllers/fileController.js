@@ -21,15 +21,19 @@ export async function upload(req, res) {
 
 export async function list(req, res) {
   const { userId } = req.user;
-  const { page, limit } = req.query;
+  const { page, limit, search, sortBy, sortOrder, categoryFilter } = req.query;
   
   const pageNum = page ? parseInt(page, 10) : 1;
   const limitNum = limit ? parseInt(limit, 10) : 20;
+  const searchQuery = search && typeof search === 'string' ? search : '';
+  const sortByValue = sortBy && typeof sortBy === 'string' ? sortBy : 'date';
+  const sortOrderValue = sortOrder === 'asc' ? 'asc' : 'desc';
+  const categoryFilterValue = categoryFilter && typeof categoryFilter === 'string' ? categoryFilter : '';
   
   const validPage = isNaN(pageNum) || pageNum < 1 ? 1 : pageNum;
   const validLimit = isNaN(limitNum) || limitNum < 1 ? 20 : Math.min(limitNum, 100);
   
-  const result = await fileService.getFilesByOwner(userId, validPage, validLimit);
+  const result = await fileService.getFilesByOwner(userId, validPage, validLimit, searchQuery, sortByValue, sortOrderValue, categoryFilterValue);
   
   // Convert BigInt thành string mới serialize được
   const files = result.files.map(file => ({

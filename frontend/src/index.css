@@ -179,28 +179,7 @@
   }
 }
 
-/* scrollbar */
-body::-webkit-scrollbar {
-  width: 6px;
-}
-
-body::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-body::-webkit-scrollbar-thumb {
-  background: oklch(0.5 0 0);
-  border-radius: 3px;
-}
-
-body::-webkit-scrollbar-thumb:hover {
-  background: oklch(0.4 0 0);
-}
-
-body {
-  scrollbar-width: thin;
-  scrollbar-color: oklch(0.5 0 0) transparent;
-}
+/* scrollbar của DashBoardLayout */
 
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
@@ -222,4 +201,6 @@ body {
 .custom-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: oklch(0.5 0 0) transparent;
+  overflow-y: scroll; /* Luôn hiển thị để tránh shift */
 }
+

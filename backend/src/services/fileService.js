@@ -2,6 +2,34 @@ import { prisma } from '../config/db.js';
 import { validateFileSize, convertBase64ToBuffer, validateMimeType } from '../utils/fileUtils.js';
 import { ValidationError, NotFoundError } from '../utils/errors.js';
 
+// Category mapping: category → array of MIME types
+const CATEGORY_MIME_MAP = {
+  'image': ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml', 'image/bmp'],
+  'video': ['video/mp4', 'video/mpeg', 'video/quicktime', 'video/x-msvideo', 'video/webm'],
+  'audio': ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/webm'],
+  'document': [
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.ms-powerpoint',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'text/plain',
+    'text/csv',
+    'text/markdown',
+    'application/json'
+  ],
+  'archive': [
+    'application/zip',
+    'application/x-zip-compressed',
+    'application/x-rar-compressed',
+    'application/x-7z-compressed',
+    'application/x-tar',
+    'application/gzip'
+  ]
+};
+
 export async function uploadFile(ownerId, fileData) {
   const { encryptedBlob, iv, authTag, encryptedAesKey, fileName, fileSize, mimeType } = fileData;
   
@@ -55,12 +83,53 @@ export async function uploadFile(ownerId, fileData) {
   return file;
 }
 
-export async function getFilesByOwner(ownerId, page = 1, limit = 20) {
+export async function getFilesByOwner(ownerId, page = 1, limit = 20, search = '', sortBy = 'date', sortOrder = 'desc', categoryFilter = '') {
   const skip = (page - 1) * limit;
+  
+  // điều kiện where
+  const where = {
+    ownerId,
+    ...(search && search.trim() ? {
+      fileName: {
+        contains: search.trim()
+      }
+    } : {}),
+    ...(categoryFilter ? (() => {
+      // dùng in với category có mapping
+      if (CATEGORY_MIME_MAP[categoryFilter]) {
+        return {
+          mimeType: {
+            in: CATEGORY_MIME_MAP[categoryFilter]
+          }
+        };
+      }
+      // Ko có dùng startsWith
+      return {
+        mimeType: {
+          startsWith: categoryFilter
+        }
+      };
+    })() : {})
+  };
+  
+  //order
+  let orderBy = {};
+  switch (sortBy) {
+    case 'name':
+      orderBy = { fileName: sortOrder };
+      break;
+    case 'size':
+      orderBy = { fileSize: sortOrder };
+      break;
+    case 'date':
+    default:
+      orderBy = { uploadedAt: sortOrder };
+      break;
+  }
   
   const [files, total] = await Promise.all([
     prisma.file.findMany({
-      where: { ownerId },
+      where,
       select: {
         id: true,
         fileName: true,
@@ -68,14 +137,12 @@ export async function getFilesByOwner(ownerId, page = 1, limit = 20) {
         mimeType: true,
         uploadedAt: true
       },
-      orderBy: {
-        uploadedAt: 'desc'
-      },
+      orderBy,
       skip,
       take: limit
     }),
     prisma.file.count({
-      where: { ownerId }
+      where
     })
   ]);
   

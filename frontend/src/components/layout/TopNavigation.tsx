@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { User } from 'lucide-react';
+import { User, Moon, Sun } from 'lucide-react';
 import { useAuth } from '@/context';
+import { useTheme } from '@/context/useTheme';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -14,6 +15,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 export function TopNavigation() {
   const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -32,19 +34,25 @@ export function TopNavigation() {
       <div className="flex h-14 items-center px-4 max-w-screen-2xl mx-auto w-full">
         {/* Logo */}
         <Link to="/dashboard" className="mr-6 flex items-center space-x-2">
-          <span className="font-bold text-xl">ZKFileSharing</span>
+          <span className="font-bold text-xl text-black">
+            FileSharing
+          </span>
         </Link>
 
         <div className="flex flex-1 items-center justify-end space-x-2">
-          {/* Upload Button
+          {/* Theme Toggle */}
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate('/dashboard/files')}
-            title="Upload Files"
+            onClick={toggleTheme}
+            title={theme === 'light' ? 'Chuyển sang dark mode' : 'Chuyển sang light mode'}
           >
-            <Upload className="h-5 w-5" />
-          </Button> */}
+            {theme === 'light' ? (
+              <Moon className="h-5 w-5" />
+            ) : (
+              <Sun className="h-5 w-5" />
+            )}
+          </Button>
 
           {/* User Menu */}
           <DropdownMenu>

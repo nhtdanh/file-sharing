@@ -11,12 +11,23 @@ import {
   FileText,
   FileSpreadsheet,
   Archive,
+  Search,
+  ArrowUp,
+  ArrowDown,
   type LucideIcon,
 } from 'lucide-react';
 import { useAuth } from '@/context';
 import { fileService } from '@/services';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Table,
   TableBody,
@@ -36,7 +47,7 @@ import { toast } from 'react-toastify';
 import { Loader2 } from 'lucide-react';
 import type { FileData, Pagination } from '@/types';
 
-// Map icon names to Lucide icons
+// Map icon
 const iconMap: Record<string, LucideIcon> = {
   File,
   Image,
@@ -47,7 +58,7 @@ const iconMap: Record<string, LucideIcon> = {
   Archive,
 };
 
-// Get icon component from mime type
+// Get icon 
 function getFileIcon(mimeType: string | null): LucideIcon {
   const iconName = getFileIconName(mimeType);
   return iconMap[iconName] || File;
@@ -71,7 +82,32 @@ export function FilesPage() {
   const [fileToShare, setFileToShare] = useState<{ id: string; fileName: string | null } | null>(null);
   const [sharesDialogOpen, setSharesDialogOpen] = useState(false);
   const [fileWithShares, setFileWithShares] = useState<{ id: string; fileName: string | null } | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [sortBy, setSortBy] = useState<'name' | 'size' | 'date'>('date');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [categoryFilter, setCategoryFilter] = useState<string>('');
   const abortControllerRef = useRef<AbortController | null>(null);
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Debounce search query
+  useEffect(() => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    searchTimeoutRef.current = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      // Reset về trang 1 khi search thay đổi
+      setCurrentPage(1);
+    }, 300);
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [searchQuery]);
 
   // Fetch files
   useEffect(() => {
@@ -79,7 +115,6 @@ export function FilesPage() {
       return;
     }
 
-    // Cancel previous request nếu có
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
@@ -93,10 +128,14 @@ export function FilesPage() {
         setIsFetching(true);
         setError(null);
         
-        console.log('[FilesPage] Fetching files - Page:', currentPage, 'Limit:', limit);
+        console.log('[FilesPage] Fetching files - Page:', currentPage, 'Limit:', limit, 'Search:', debouncedSearch, 'Sort:', sortBy, sortOrder, 'Filter:', categoryFilter);
         const result = await fileService.list({
           page: currentPage,
           limit: limit,
+          search: debouncedSearch || undefined,
+          sortBy,
+          sortOrder,
+          categoryFilter: categoryFilter || undefined,
         });
 
         // Kiểm tra nếu đã bị cancel
@@ -131,27 +170,26 @@ export function FilesPage() {
 
     fetchFiles();
 
-    // Cleanup
+    // Clean
     return () => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
     };
-  }, [isAuthenticated, currentPage, limit]);
+  }, [isAuthenticated, currentPage, limit, debouncedSearch, sortBy, sortOrder, categoryFilter]);
 
-  // Handle page change
   const handlePageChange = (newPage: number) => {
     if (pagination && newPage >= 1 && newPage <= pagination.totalPages) {
       setCurrentPage(newPage);
     }
   };
 
-  // Handle upload success - refresh file list
+  // refresh 
   const handleUploadSuccess = () => {
     // Reset về trang 1 - useEffect sẽ tự động fetch lại
     // Nếu đang ở trang 1, force refresh bằng cách set lại
     if (currentPage === 1) {
-      // Trigger re-fetch bằng cách set lại currentPage
+      // Trigger refetch bằng cách set lại currentPage
       setCurrentPage(0);
       setTimeout(() => setCurrentPage(1), 0);
     } else {
@@ -159,10 +197,9 @@ export function FilesPage() {
     }
   };
 
-  // Retry fetch files
   const handleRetry = () => {
     setError(null);
-    // Trigger re-fetch
+    // Trigger refetch
     setCurrentPage((prev) => prev);
   };
 
@@ -180,7 +217,7 @@ export function FilesPage() {
 
       // Download và decrypt file
       await downloadFile(fileId, privateKey, fileName);
-      // Không hiển thị success vì decrypt chỉ là bước giải mã, download đã được trigger tự động
+      // Không hiển thị toast vì decrypt chỉ là bước giải mã, download đã được trigger tự động
     } catch (error) {
       console.error('[Download] Lỗi:', error);
       toast.error(getErrorMessage(error, 'Download file thất bại'));
@@ -189,13 +226,10 @@ export function FilesPage() {
     }
   };
 
-  // Handle delete file - open dialog
   const handleDeleteClick = (fileId: string, fileName: string | null) => {
     setFileToDelete({ id: fileId, fileName });
     setDeleteDialogOpen(true);
   };
-
-  // Handle confirm delete
   const handleConfirmDelete = async () => {
     if (!fileToDelete) return;
 
@@ -207,17 +241,16 @@ export function FilesPage() {
       setDeleteDialogOpen(false);
       setFileToDelete(null);
       
-      // Refresh file list
-      // Nếu đang ở trang cuối và chỉ còn 1 file, chuyển về trang trước
+      // Nếu ở trang cuối và chỉ còn 1 file, chuyển về trang trước
       if (pagination && files.length === 1 && currentPage > 1) {
         setCurrentPage(currentPage - 1);
       } else {
-        // Force re-fetch bằng cách set lại currentPage (tương tự handleUploadSuccess)
+        // Ép refetch bằng cách set lại currentPage
         if (currentPage === 1) {
           setCurrentPage(0);
           setTimeout(() => setCurrentPage(1), 0);
         } else {
-          // Force re-fetch bằng cách set về trang trước rồi set lại trang hiện tại
+          // Ép refetch bằng cách set về trang trước rồi set lại trang hiện tại
           setCurrentPage(currentPage - 1);
           setTimeout(() => setCurrentPage(currentPage), 0);
         }
@@ -230,7 +263,6 @@ export function FilesPage() {
     }
   };
 
-  // Handle share file - open dialog
   const handleShareClick = (fileId: string, fileName: string | null) => {
     setFileToShare({ id: fileId, fileName });
     setShareDialogOpen(true);
@@ -239,8 +271,10 @@ export function FilesPage() {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">My Files</h1>
+      <div className="flex items-center justify-between -mt-2">
+        <h1 className="text-xl font-bold bg-secondary text-secondary-foreground px-6 py-2 rounded-full shadow-xs">
+          My Files
+        </h1>
         <Button
           onClick={() => setIsUploadDialogOpen(true)}
           className="shadow-md"
@@ -249,6 +283,77 @@ export function FilesPage() {
         </Button>
       </div>
 
+      {/* Search, Sort và Filter - hiển thị khi có file hoặc đang có search/filter */}
+      {pagination && (pagination.total > 0 || debouncedSearch || categoryFilter) && (
+        <div className="flex items-center gap-3">
+          {/* Search Bar */}
+          <div className="relative w-full max-w-xs flex-shrink-0">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Nhập tên file..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+
+          {/* Filter và Sort*/}
+          <div className="flex items-center gap-2 ml-auto">
+            {/* Filter by Category */}
+            <Select value={categoryFilter || 'all'} onValueChange={(value: string) => {
+              setCategoryFilter(value === 'all' ? '' : value);
+              setCurrentPage(1);
+            }}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="Loại file" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả</SelectItem>
+                <SelectItem value="image">Hình ảnh</SelectItem>
+                <SelectItem value="video">Video</SelectItem>
+                <SelectItem value="audio">Audio</SelectItem>
+                <SelectItem value="document">Tài liệu</SelectItem>
+                <SelectItem value="archive">Tệp nén</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Sort By */}
+            <Select value={sortBy} onValueChange={(value: 'name' | 'size' | 'date') => {
+              setSortBy(value);
+              setCurrentPage(1);
+            }}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="Sắp xếp" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="date">Ngày upload</SelectItem>
+                <SelectItem value="name">Tên file</SelectItem>
+                <SelectItem value="size">Kích thước</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Sort Order */}
+            <Button
+              variant="outline"
+              size="icon"
+              className="w-9 h-9"
+              onClick={() => {
+                setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+                setCurrentPage(1);
+              }}
+              title={sortOrder === 'asc' ? 'Tăng dần' : 'Giảm dần'}
+            >
+              {sortOrder === 'asc' ? (
+                <ArrowUp className="h-4 w-4" />
+              ) : (
+                <ArrowDown className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Upload Dialog */}
       <FileUploadDialog
         open={isUploadDialogOpen}
@@ -256,7 +361,7 @@ export function FilesPage() {
         onUploadSuccess={handleUploadSuccess}
       />
 
-      {/* Delete Confirmation Dialog */}
+      {/* Delete Confirm Dialog */}
       <DeleteFileDialog
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
@@ -265,7 +370,7 @@ export function FilesPage() {
         isDeleting={isDeleting}
       />
 
-      {/* Share File Dialog */}
+      {/* Share Dialog */}
       {fileToShare && (
         <ShareFileDialog
           open={shareDialogOpen}
@@ -278,13 +383,13 @@ export function FilesPage() {
           fileId={fileToShare.id}
           fileName={fileToShare.fileName}
           onShareSuccess={() => {
-            // Có thể refresh list nếu cần, nhưng share không thay đổi file list
+            // Có thể refresh list nếu cần
             setFileToShare(null);
           }}
         />
       )}
 
-      {/* File Shares Dialog */}
+      {/* Shared Users Dialog */}
       {fileWithShares && (
         <FileSharesDialog
           open={sharesDialogOpen}
@@ -328,31 +433,46 @@ export function FilesPage() {
       {/* Empty State */}
       {!isLoading && !error && files.length === 0 && (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-12 text-center">
-          <p className="text-lg font-medium text-muted-foreground">Chưa có files nào</p>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Upload file đầu tiên của bạn để bắt đầu
-          </p>
-          <Button
-            className="mt-4 shadow-md"
-            onClick={() => setIsUploadDialogOpen(true)}
-          >
-            Upload File
-          </Button>
+          {debouncedSearch || categoryFilter ? (
+            <>
+              <p className="text-lg font-medium text-muted-foreground">Không tìm thấy file nào phù hợp</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {debouncedSearch && categoryFilter
+                  ? `Không có file nào khớp với "${debouncedSearch}" và loại file đã chọn`
+                  : debouncedSearch
+                  ? `Không có file nào khớp với "${debouncedSearch}"`
+                  : 'Không có file nào thuộc loại đã chọn'}
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-lg font-medium text-muted-foreground">Chưa có files nào</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Upload file đầu tiên của bạn để bắt đầu
+              </p>
+              <Button
+                className="mt-4 shadow-md"
+                onClick={() => setIsUploadDialogOpen(true)}
+              >
+                Upload File
+              </Button>
+            </>
+          )}
         </div>
       )}
 
       {/* Files List */}
       {!isLoading && !error && files.length > 0 && (
         <div className="space-y-4">
-          <div className="rounded-lg border shadow-md">
-            <Table>
+          <div className="rounded-lg border shadow-md w-full">
+            <Table className="w-full">
               <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[40%] bg-muted text-muted-foreground font-bold">Tên file</TableHead>
-                  <TableHead className="w-[15%] bg-muted text-muted-foreground font-bold">Kích thước</TableHead>
-                  <TableHead className="w-[20%] bg-muted text-muted-foreground font-bold">Ngày upload</TableHead>
-                  <TableHead className="w-[25%] text-right bg-muted text-muted-foreground font-bold">Thao tác</TableHead>
-                </TableRow>
+                      <TableRow>
+                        <TableHead className="w-[40%] bg-muted text-muted-foreground font-bold">Tên file</TableHead>
+                        <TableHead className="w-[15%] bg-muted text-muted-foreground font-bold">Kích thước</TableHead>
+                        <TableHead className="w-[20%] bg-muted text-muted-foreground font-bold">Ngày upload</TableHead>
+                        <TableHead className="w-[25%] text-right bg-muted text-muted-foreground font-bold">Thao tác</TableHead>
+                      </TableRow>
               </TableHeader>
               <TableBody>
                 {files.map((file) => (
@@ -393,6 +513,15 @@ export function FilesPage() {
                         <Button
                           size="icon"
                           variant="outline"
+                          className="h-8 w-8 shadow-none bg-white border-black text-black hover:bg-secondary hover:text-secondary-foreground hover:border-secondary"
+                          onClick={() => handleShareClick(file.id, file.fileName)}
+                          title="Share"
+                        >
+                          <Share2 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="outline"
                           className="h-8 w-8 shadow-none bg-white border-black text-black hover:bg-chart-4 hover:text-white hover:border-chart-4"
                           onClick={() => {
                             setFileWithShares({ id: file.id, fileName: file.fileName });
@@ -401,15 +530,6 @@ export function FilesPage() {
                           title="Danh sách share"
                         >
                           <Users className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="outline"
-                          className="h-8 w-8 shadow-none bg-white border-black text-black hover:bg-secondary hover:text-secondary-foreground hover:border-secondary"
-                          onClick={() => handleShareClick(file.id, file.fileName)}
-                          title="Share"
-                        >
-                          <Share2 className="h-4 w-4" />
                         </Button>
                         <Button
                           size="icon"
@@ -428,7 +548,7 @@ export function FilesPage() {
             </Table>
           </div>
 
-          {/* Pagination placeholder */}
+          {/* Pagination */}
           {pagination && pagination.totalPages > 1 && (
             <div className="flex items-center justify-between">
               <div className="text-sm text-muted-foreground">

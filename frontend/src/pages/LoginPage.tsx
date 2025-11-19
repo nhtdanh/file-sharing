@@ -66,7 +66,7 @@ export function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4 bg-gradient-to-br from-primary/10 via-background to-primary/5">
+    <div className="flex min-h-screen items-center justify-center p-4 bg-gradient-to-br from-primary/30 via-background to-primary/20">
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader>
           <CardTitle className="text-2xl font-bold text-primary">Đăng nhập</CardTitle>

@@ -15,6 +15,7 @@ const ALLOWED_MIME_TYPES = [
   'text/plain',
   'text/csv',
   'text/markdown',
+  'application/json',
   //Image
   'image/jpeg',
   'image/jpg',
@@ -29,7 +30,18 @@ const ALLOWED_MIME_TYPES = [
   'application/x-rar-compressed',
   'application/x-7z-compressed',
   'application/gzip',
-  'application/x-tar'
+  'application/x-tar',
+  //Video
+  'video/mp4',
+  'video/mpeg',
+  'video/quicktime',
+  'video/x-msvideo',
+  'video/webm',
+  //Audio
+  'audio/mpeg',
+  'audio/wav',
+  'audio/ogg',
+  'audio/webm'
 ];
 
 export function validateFileSize(fileSize) {
@@ -45,7 +57,7 @@ export function validateMimeType(mimeType) {
   }
   
   if (!ALLOWED_MIME_TYPES.includes(mimeType.toLowerCase())) {
-    throw new ValidationError('Loại file không được phép. Chỉ chấp nhận: documents, images, archives');
+    throw new ValidationError('Loại file không được phép. Chỉ chấp nhận: documents, images, videos, audio, archives');
   }
   
   return true;

@@ -65,4 +65,8 @@ export interface UnshareFileRequest {
 export interface SharedFilesQuery {
   page?: number | string;
   limit?: number | string;
+  search?: string;
+  sortBy?: 'name' | 'size' | 'date';
+  sortOrder?: 'asc' | 'desc';
+  categoryFilter?: string; // 'image', 'video', 'audio', 'document', 'archive'
 }

@@ -1,6 +1,34 @@
 import { prisma } from '../config/db.js';
 import { ValidationError, NotFoundError, ConflictError } from '../utils/errors.js';
 
+// Category mapping
+const CATEGORY_MIME_MAP = {
+  'image': ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml', 'image/bmp'],
+  'video': ['video/mp4', 'video/mpeg', 'video/quicktime', 'video/x-msvideo', 'video/webm'],
+  'audio': ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/webm'],
+  'document': [
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.ms-powerpoint',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'text/plain',
+    'text/csv',
+    'text/markdown',
+    'application/json'
+  ],
+  'archive': [
+    'application/zip',
+    'application/x-zip-compressed',
+    'application/x-rar-compressed',
+    'application/x-7z-compressed',
+    'application/x-tar',
+    'application/gzip'
+  ]
+};
+
 export async function shareFile(fileId, sharedToUserId, encryptedAesKey, sharedById, canDownload = true, canReshare = false) {
   // kiểm tra không share cho chính mình
   if (sharedById === sharedToUserId) {
@@ -66,12 +94,53 @@ export async function shareFile(fileId, sharedToUserId, encryptedAesKey, sharedB
   return share;
 }
 
-export async function getSharedFiles(userId, page = 1, limit = 20) {
+export async function getSharedFiles(userId, page = 1, limit = 20, search = '', sortBy = 'date', sortOrder = 'desc', categoryFilter = '') {
   const skip = (page - 1) * limit;
+  
+  // Viết điều kiện where
+  const fileWhere = {};
+  if (search && search.trim()) {
+    fileWhere.fileName = {
+      contains: search.trim()
+    };
+  }
+  if (categoryFilter) {
+    if (CATEGORY_MIME_MAP[categoryFilter]) {
+      fileWhere.mimeType = {
+        in: CATEGORY_MIME_MAP[categoryFilter]
+      };
+    } else {
+
+      fileWhere.mimeType = {
+        startsWith: categoryFilter
+      };
+    }
+  }
+  
+  const where = {
+    sharedToUserId: userId,
+    ...(Object.keys(fileWhere).length > 0 ? {
+      file: fileWhere
+    } : {})
+  };
+  
+  let orderBy = {};
+  switch (sortBy) {
+    case 'name':
+      orderBy = { file: { fileName: sortOrder } };
+      break;
+    case 'size':
+      orderBy = { file: { fileSize: sortOrder } };
+      break;
+    case 'date':
+    default:
+      orderBy = { sharedAt: sortOrder };
+      break;
+  }
   
   const [sharedFiles, total] = await Promise.all([
     prisma.fileShare.findMany({
-      where: { sharedToUserId: userId },
+      where,
       include: {
         file: {
           select: {
@@ -89,14 +158,12 @@ export async function getSharedFiles(userId, page = 1, limit = 20) {
           }
         }
       },
-      orderBy: {
-        sharedAt: 'desc'
-      },
+      orderBy,
       skip,
       take: limit
     }),
     prisma.fileShare.count({
-      where: { sharedToUserId: userId }
+      where
     })
   ]);
   
@@ -117,7 +184,7 @@ export async function getSharedFiles(userId, page = 1, limit = 20) {
 }
 
 export async function getFileShares(fileId, ownerId) {
-  // kiểm tra file thuộc owner
+  // kiểm tra file có thuộc owner
   const file = await prisma.file.findFirst({
     where: {
       id: fileId,
