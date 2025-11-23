@@ -28,8 +28,8 @@ interface FileUploadDialogProps {
   onUploadSuccess: () => void;
 }
 
-// Max file size: 100MB
-const MAX_FILE_SIZE = 100 * 1024 * 1024;
+// Max file size: 500MB
+const MAX_FILE_SIZE = 500 * 1024 * 1024;
 
 // Các type cho phép
 const ALLOWED_MIME_TYPES = [

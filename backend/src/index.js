@@ -19,8 +19,9 @@ app.use(cors({
   credentials: true
 }));
 
-app.use(express.json({ limit: '100mb' }));
-app.use(express.urlencoded({ extended: true, limit: '100mb' }));
+//binary to base64 tăng 33% kích thước
+app.use(express.json({ limit: '750mb' }));
+app.use(express.urlencoded({ extended: true, limit: '750mb' }));
 
 const apiRouter = express.Router();
 

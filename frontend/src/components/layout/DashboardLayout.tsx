@@ -7,7 +7,7 @@ export function DashboardLayout() {
     <div className="flex flex-col h-screen">
       <TopNavigation />
       <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar - ẩn trên mobile */}
+        {/* Sidebar*/}
         <aside className="hidden md:block border-r-2 border-sidebar-border flex-shrink-0">
           <Sidebar />
         </aside>
